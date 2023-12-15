@@ -1,0 +1,7 @@
+{
+  "name": "gdg-signals-workshop",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
