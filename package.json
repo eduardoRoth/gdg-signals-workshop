@@ -1,8 +1,8 @@
 {
   "name": "gdg-signals-workshop",
-  "version": "0.0.1",
-  "author": "Ionic Framework",
-  "homepage": "https://ionicframework.com/",
+  "version": "1.0.0",
+  "author": "Eduardo Roth",
+  "homepage": "https://eduardoroth.dev/",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

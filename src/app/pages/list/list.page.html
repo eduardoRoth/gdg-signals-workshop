@@ -1,0 +1,60 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Rick & Morty | Personajes</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar color="primary">
+      <ion-title size="large">Rick & Morty | Personajes</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <ion-list class="ion-margin-bottom">
+    @if((loading$ | async) === true){ @for (d of loadingArray; track d){
+    <ion-item button>
+      <ion-avatar slot="start">
+        <ion-skeleton-text animated></ion-skeleton-text>
+      </ion-avatar>
+      <ion-label>
+        <ion-skeleton-text animated style="height: 18px; width: 120px" />
+        <ion-skeleton-text animated style="height: 15px; width: 220px" />
+      </ion-label>
+      <ion-skeleton-text
+        slot="end"
+        animated
+        style="height: 25px; width: 25px; border-radius: 50%"
+      />
+    </ion-item>
+    } } @for (character of (characters$ | async); track character.id) {
+    <ion-item button>
+      <ion-avatar slot="start">
+        <img [src]="character.image" />
+      </ion-avatar>
+      <ion-label>
+        <h2>{{character.name}}</h2>
+        <p>{{character.location.name}}</p>
+      </ion-label>
+      @switch (character.gender){ @case (Gender.Male){
+      <ion-icon name="male" color="primary"></ion-icon>
+      } @case (Gender.Female){
+      <ion-icon name="female" color="secondary"></ion-icon>
+      } @case (Gender.Unknown){
+      <ion-icon name="help" color="tertiary"></ion-icon>
+      } }
+    </ion-item>
+    } @empty { @if ((loading$ | async) === false) {
+    <ion-item lines="none">
+      <ion-label class="ion-text-center">Sin resultados</ion-label>
+    </ion-item>
+    } }
+  </ion-list>
+
+  <ion-infinite-scroll
+    [disabled]="(infiniteLoadingDisabled$ | async) === true"
+    (ionInfinite)="loadNextPage($event)"
+  >
+    <ion-infinite-scroll-content loadingText="Cargando más personajes..." />
+  </ion-infinite-scroll>
+</ion-content>
