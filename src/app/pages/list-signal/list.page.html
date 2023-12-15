@@ -3,8 +3,7 @@
     <ion-title>Rick & Morty | Personajes</ion-title>
     <ion-buttons slot="end">
       <ion-badge
-        >{{loadedCharacters$ | async }} / {{ (totalCharacters$ | async)
-        }}</ion-badge
+        >{{ totalPersonajesCargados() }} / {{ totalPersonajes() }}</ion-badge
       >
     </ion-buttons>
   </ion-toolbar>
@@ -15,13 +14,13 @@
     <ion-toolbar>
       <ion-title size="large">Rick & Morty | Personajes</ion-title>
       <ion-buttons slot="end">
-        <ion-badge>{{ (totalCharacters$ | async) }}</ion-badge>
+        <ion-badge>{{ totalPersonajes() }}</ion-badge>
       </ion-buttons>
     </ion-toolbar>
   </ion-header>
 
   <ion-list class="ion-margin-bottom">
-    @if((loading$ | async) === true){ @for (d of loadingArray; track d){
+    @if(cargando() === true){ @for (d of loadingArray(); track d) {
     <ion-item button>
       <ion-avatar slot="start">
         <ion-skeleton-text animated></ion-skeleton-text>
@@ -36,7 +35,7 @@
         style="height: 25px; width: 25px; border-radius: 50%"
       />
     </ion-item>
-    } } @for (character of (characters$ | async); track character.id) {
+    } } @for (character of personajes(); track character.id) {
     <ion-item button [routerLink]="'' + character.id">
       <ion-avatar slot="start">
         <img [src]="character.image" />
@@ -53,7 +52,7 @@
       <ion-icon name="help" color="tertiary"></ion-icon>
       } }
     </ion-item>
-    } @empty { @if ((loading$ | async) === false) {
+    } @empty { @if ( cargando() === false) {
     <ion-item lines="none">
       <ion-label class="ion-text-center">Sin resultados</ion-label>
     </ion-item>
@@ -61,7 +60,7 @@
   </ion-list>
 
   <ion-infinite-scroll
-    [disabled]="(infiniteLoadingDisabled$ | async) === true"
+    [disabled]="cargarMas() !== true"
     (ionInfinite)="loadNextPage($event)"
   >
     <ion-infinite-scroll-content loadingText="Cargando más personajes..." />

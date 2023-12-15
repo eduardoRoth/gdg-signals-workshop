@@ -6,8 +6,8 @@ export interface CharacterApiResult {
 export interface CharacterInfo {
   count: number;
   pages: number;
-  next: string;
-  prev: null;
+  next: string | null;
+  prev: string | null;
 }
 
 export interface CharacterResult {
