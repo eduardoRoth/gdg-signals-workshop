@@ -11,8 +11,8 @@ export class CharacterService {
   private readonly _http = inject(HttpClient);
   constructor() {}
 
-  getCharacters(page: number = 1) {
-    return this._http.get<CharacterApiResult>(`${BASE_URL}?page=${page}`);
+  getCharacters(page: number = 1, name='') {
+    return this._http.get<CharacterApiResult>(`${BASE_URL}?page=${page}&name=${name}`);
   }
 
   getCharacter(id: number) {

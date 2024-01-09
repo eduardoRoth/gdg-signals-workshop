@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   IonAvatar,
@@ -10,39 +15,27 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonSearchbar,
   IonSkeletonText,
   IonTitle,
+  IonToast,
   IonToolbar,
 } from '@ionic/angular/standalone';
 import { AsyncPipe } from '@angular/common';
 import { CharacterService } from '../../services/character.service';
 import { addIcons } from 'ionicons';
 import { female, help, male } from 'ionicons/icons';
+import { CharacterResult, Gender } from '../../services/interfaces';
 import {
-  CharacterApiResult,
-  CharacterResult,
-  Gender,
-} from '../../services/interfaces';
-import {
-  BehaviorSubject,
-  delay,
-  iif,
-  map,
-  of,
-  scan,
-  Subject,
-  switchMap,
-  tap,
-  withLatestFrom,
-} from 'rxjs';
-import { InfiniteScrollCustomEvent } from '@ionic/angular';
+  InfiniteScrollCustomEvent,
+  SearchbarCustomEvent,
+} from '@ionic/angular';
 
 @Component({
   selector: 'app-list',
   templateUrl: './list.page.html',
   styleUrls: ['./list.page.scss'],
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
     AsyncPipe,
@@ -58,65 +51,25 @@ import { InfiniteScrollCustomEvent } from '@ionic/angular';
     IonSkeletonText,
     IonInfiniteScroll,
     IonInfiniteScrollContent,
+    IonSearchbar,
+    IonToast,
   ],
+  changeDetection: ChangeDetectionStrategy.Default,
 })
-export class ListPage {
+export class ListPage implements OnInit {
   private readonly _charactersService = inject(CharacterService);
 
-  readonly loadingArray = new Array(20).fill(1);
+  readonly characters: CharacterResult[] = [];
+  readonly loadingArray: number[] = new Array(20).fill(0);
+  currentPage = 1;
+  currentSearch = '';
+  lastPage = 1;
+  infiniteLoadingDisabled = false;
+  loading = false;
+  showFetchingError = false;
+  showNoResultsError = false;
+  showNoMoreCharactersError = false;
 
-  private readonly _currentPage$$ = new BehaviorSubject<number>(1);
-  readonly currentPage$ = this._currentPage$$.asObservable();
-
-  private readonly _lastPage$$ = new BehaviorSubject<number>(1);
-  readonly lastPage$ = this._lastPage$$.asObservable();
-
-  private readonly _infiniteLoadingEvent$$ =
-    new BehaviorSubject<InfiniteScrollCustomEvent | null>(null);
-  readonly infiniteLoadingEvent$ = this._infiniteLoadingEvent$$.asObservable();
-
-  private readonly _infiniteLoadingDisabled$$ = new BehaviorSubject<boolean>(
-    false,
-  );
-  readonly infiniteLoadingDisabled$ =
-    this._infiniteLoadingDisabled$$.asObservable();
-
-  readonly charactersPerPage$ = this.currentPage$.pipe(
-    delay(550),
-    withLatestFrom(this.lastPage$),
-    tap(([currentPage, lastPage]) =>
-      currentPage === 1 && currentPage <= lastPage
-        ? this._loading$$.next(true)
-        : null,
-    ),
-    switchMap(([currentPage, lastPage]) =>
-      iif(
-        () => currentPage <= lastPage,
-        this._charactersService.getCharacters(currentPage),
-        of(null).pipe(tap(() => this._infiniteLoadingDisabled$$.next(true))),
-      ),
-    ),
-    withLatestFrom(this.infiniteLoadingEvent$),
-    tap(([result, event]) => {
-      event?.target.complete();
-      this._loading$$.next(false);
-      if (result) {
-        this._lastPage$$.next(result.info.pages);
-      }
-    }),
-    map(([result]) => result?.results),
-  );
-
-  readonly characters$ = this.charactersPerPage$.pipe(
-    scan(
-      (characters, charactersPage) =>
-        charactersPage ? characters.concat(charactersPage) : characters,
-      [] as CharacterResult[],
-    ),
-  );
-
-  private readonly _loading$$ = new BehaviorSubject<boolean>(true);
-  readonly loading$ = this._loading$$.asObservable();
   constructor() {
     addIcons({
       male,
@@ -125,10 +78,66 @@ export class ListPage {
     });
   }
 
+  ngOnInit() {
+    this.loading = true;
+    this._fetchMoreCharacters();
+  }
+
   protected readonly Gender = Gender;
 
   loadNextPage(event: InfiniteScrollCustomEvent) {
-    this._infiniteLoadingEvent$$.next(event);
-    this._currentPage$$.next(this._currentPage$$.value + 1);
+    this._fetchMoreCharacters(event);
+  }
+
+  searchCharacters(event: SearchbarCustomEvent) {
+    this.currentSearch = event.detail.value ?? '';
+    this.loading = true;
+    this.currentPage = 1;
+    this.infiniteLoadingDisabled = false;
+    this._charactersService
+      .getCharacters(this.currentPage, this.currentSearch)
+      .subscribe({
+        next: (apiResult) => {
+          this.lastPage = apiResult.info.pages;
+          this.currentPage++;
+          this.characters.splice(
+            0,
+            this.characters.length,
+            ...apiResult.results,
+          );
+          this.loading = false;
+        },
+        error: (err) => {
+          if (err.status === 404) {
+            this.characters.splice(0, this.characters.length);
+          }
+          this.loading = false;
+        },
+      });
+  }
+
+  private _fetchMoreCharacters(event?: InfiniteScrollCustomEvent) {
+    this._charactersService
+      .getCharacters(this.currentPage, this.currentSearch)
+      .subscribe({
+        next: (apiResult) => {
+          this.lastPage = apiResult.info.pages;
+          this.currentPage++;
+          this.characters.push(...apiResult.results);
+          this.loading = false;
+          event?.target.complete();
+        },
+        error: (err) => {
+          this.showFetchingError = true;
+          this.loading = false;
+          if (err.status === 404) {
+            this.infiniteLoadingDisabled = true;
+            this.showNoMoreCharactersError = true;
+          } else {
+            this.showFetchingError = true;
+          }
+          event?.target.complete();
+        },
+      });
   }
 }
